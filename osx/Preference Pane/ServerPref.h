@@ -9,7 +9,6 @@
 #import <PreferencePanes/PreferencePanes.h>
 #import <Foundation/NSPathUtilities.h>
 #import <WebKit/WebKit.h>
-#import <SBJson.h>
 
 #define LocalizedPrefString(key, comment) [[NSBundle bundleForClass:[self class]] localizedStringForKey:(key) value:@"" table:nil]
 
@@ -25,16 +24,8 @@
 #define kStartupAtLogin 1
 #define kStartupAtBoot 2
 
-@interface Slim_ServerPref : NSPreferencePane 
+@interface Slim_ServerPref : NSPreferencePane <NSTableViewDataSource>
 {
-	bool serverState;
-	bool webState;
-	bool isScanning;
-	
-	NSTimer *updateTimer;
-	
-	NSMutableDictionary *scStrings;
-	
 	IBOutlet NSTabView *prefsTab;
 
 	IBOutlet NSButton *toggleServerButton;
@@ -73,9 +64,6 @@
 	IBOutlet NSButton *doCleanup;
 	
 	IBOutlet WebView *statusView;
-
-	AuthorizationRef myAuthorizationRef;
-	NSMutableData *receivedData;
 }
 
 -(void)mainViewDidLoad;
@@ -107,7 +95,6 @@
 -(int)numberOfRowsInTableView:(NSTabView *)tv;
 -(id)tableView:(NSTabView *)tv objectValueForTableColumn:(NSTableColumn *)dirsColumn row:(int)rowIndex;
 -(IBAction)saveMediadirs:(id)sender;
-NSMutableArray *mediaDirs;
 
 -(IBAction)rescan:(id)sender;
 -(void)scanPoll;

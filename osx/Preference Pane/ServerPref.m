@@ -18,6 +18,18 @@
 
 @implementation Slim_ServerPref
 
+bool serverState;
+bool webState;
+bool isScanning;
+
+NSTimer *updateTimer;
+
+NSMutableDictionary *scStrings;
+NSMutableArray *mediaDirs;
+
+AuthorizationRef myAuthorizationRef;
+NSMutableData *receivedData;
+
 -(void)mainViewDidLoad
 {
 	NSDictionary *prefs = [[NSUserDefaults standardUserDefaults] persistentDomainForName:[[NSBundle bundleForClass:[self class]] bundleIdentifier]];
@@ -27,7 +39,7 @@
 	//NSLog(@"Squeezebox: initializing preference pane...");
 
 	if (prefs != nil)
-		defaultValues = [[prefs mutableCopy] autorelease];
+		defaultValues = [prefs mutableCopy];
 	else
 		defaultValues = [NSMutableDictionary dictionary];
 
@@ -75,9 +87,9 @@
 	[self showRevision];
 	
 	[self asyncJsonRequest:@"\"pref\", \"wizardDone\", \"1\""];
-	
-	[self getMediaDirs];
-	[mediaDirsTable setDataSource:mediaDirs];
+
+    [mediaDirsTable setDataSource:self];
+    [mediaDirsTable reloadData];
 }
 
 /*
@@ -90,6 +102,8 @@
 	// schedule one-off update check to present update if available
 	// we can't call this directly, as it lead to crashes in OSX 10.10+
 	[NSTimer scheduledTimerWithTimeInterval:5 target:self selector:@selector(checkUpdateInstaller) userInfo:nil repeats:NO];
+    
+    [self getMediaDirs];
 }
 
 -(int)serverPID
@@ -129,10 +143,9 @@
 	inData = [readHandle readDataToEndOfFile];
 
 	if ([inData length])
-		[pidString appendString:[NSString stringWithCString:[inData bytes] length:[inData length]]];
+		[pidString appendString:[NSString stringWithCString:[inData bytes] encoding:NSASCIIStringEncoding]];
 #endif
 	
-	[pipeTask release];
 
 	if (sscanf([pidString UTF8String], "%d", &pid) == 1)
 		return pid;
@@ -178,10 +191,9 @@
 	inData = [readHandle readDataToEndOfFile];
 	
 	if ([inData length])
-		[portString appendString:[NSString stringWithCString:[inData bytes] length:[inData length]]];
+		[portString appendString:[NSString stringWithCString:[inData bytes] encoding:NSASCIIStringEncoding]];
 #endif
 	
-	[pipeTask release];
 
 	if (sscanf([portString UTF8String], "%d", &port) == 1)
 		return port;
@@ -227,7 +239,7 @@
 	
 	if (revisionTxt != nil && [[NSFileManager defaultManager] fileExistsAtPath:revisionTxt]) {
 		
-		NSArray *lines = [[NSString stringWithContentsOfFile:revisionTxt] componentsSeparatedByString:@"\n"];
+		NSArray *lines = [[NSString stringWithContentsOfFile:revisionTxt encoding:NSUTF8StringEncoding error:nil] componentsSeparatedByString:@"\n"];
 
 		if ([lines count] > 0) {
 			[scVersion setStringValue:[NSString stringWithFormat:@"%@ / r%@", [scVersion stringValue], [lines objectAtIndex:0]]];
@@ -383,7 +395,7 @@
 
 -(IBAction)changeStartupPreference:(id)sender
 {
-	NSMutableDictionary *prefs = [[[[NSUserDefaults standardUserDefaults] persistentDomainForName:[[NSBundle bundleForClass:[self class]] bundleIdentifier]] mutableCopy] autorelease];
+	NSMutableDictionary *prefs = [[[NSUserDefaults standardUserDefaults] persistentDomainForName:[[NSBundle bundleForClass:[self class]] bundleIdentifier]] mutableCopy];
 
 	int previousStartupValue = [[prefs objectForKey:@"StartupMenuTag"] intValue];
 
@@ -494,7 +506,7 @@
 		pathToUpdate = [self findFile:NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSLocalDomainMask, YES) fileName:versionFile];
 
 	if ([pathToUpdate length] > 0) {
-		NSString *fileString = [NSString stringWithContentsOfFile:pathToUpdate];
+		NSString *fileString = [NSString stringWithContentsOfFile:pathToUpdate encoding:NSUTF8StringEncoding error:nil];
 		NSArray *lines = [fileString componentsSeparatedByString:@"\n"];
 	
 		if ([lines count] > 0)
@@ -626,7 +638,7 @@
 	NSString *username = [snUsername stringValue];
 	NSString *password = [snPassword stringValue];
 
-	if (username != nil && password != nil && username != @"" && password != @"" && password != snPasswordPlaceholder) {
+	if (username != nil && password != nil && ![username  isEqual: @""] && ![password  isEqual: @""] && ![password  isEqual: snPasswordPlaceholder]) {
 		NSDictionary *snResult = [self saveSNCredentials];
 		
 		NSString *msg = @"";
@@ -639,7 +651,7 @@
 		if (snResult != nil && [snResult valueForKey:@"warning"] != nil)
 			msg = LocalizedPrefString([snResult valueForKey:@"warning"], @"");
 
-		if (msg != @"")
+		if (![msg  isEqual: @""])
 			NSBeginAlertSheet (LocalizedPrefString(msg, @""), LocalizedPrefString(@"Ok", @""), nil, nil,[[NSApplication sharedApplication] mainWindow], self, nil, NULL, @"", @"");
 	}
 }
@@ -656,7 +668,7 @@
 	
 	NSDictionary *snResult = nil;
 	
-	if (username != nil && password != nil && username != @"" && password != @"" && password != snPasswordPlaceholder)
+	if (username != nil && password != nil && ![username  isEqual: @""] && ![password  isEqual: @""] && ![password  isEqual: snPasswordPlaceholder])
 		snResult = [self jsonRequest:[NSString stringWithFormat:@"\"setsncredentials\", \"%@\", \"%@\"", username, password]];
 
 	return snResult;
@@ -686,10 +698,11 @@
 	[openDlg setCanChooseFiles:NO];
 	[openDlg setCanChooseDirectories:YES];
 	[openDlg setAllowsMultipleSelection:NO];
+    [openDlg setDirectoryURL:[NSURL URLWithString:@"~"]];
 	
-	if ([openDlg runModalForDirectory:@"~" file:nil] == NSOKButton)
+	if ([openDlg runModal] == NSOKButton)
 	{
-		[mediaDirs addObject:[openDlg filename]];
+		[mediaDirs addObject:[openDlg nameFieldStringValue]];
 		[self saveMediadirs:self];
 	}
 }
@@ -708,16 +721,17 @@
 -(IBAction)doBrowsePlaylistFolder:(id)sender
 {
 	NSOpenPanel* openDlg = [NSOpenPanel openPanel];
-	
+    
 	[openDlg setCanChooseFiles:NO];
 	[openDlg setCanChooseDirectories:YES];
 	[openDlg setAllowsMultipleSelection:NO];
-	
-	if ([openDlg runModalForDirectory:[playlistFolder stringValue] file:nil] == NSOKButton)
+    [openDlg setDirectoryURL:[NSURL URLWithString:[playlistFolder stringValue]]];
+    
+	if ([openDlg runModal] == NSOKButton)
 	{
-		if (![[openDlg filename] isEqual:[playlistFolder stringValue]])
+		if (![[openDlg nameFieldStringValue] isEqual:[playlistFolder stringValue]])
 		{
-			[playlistFolder setStringValue:[openDlg filename]];
+			[playlistFolder setStringValue:[openDlg nameFieldStringValue]];
 			[self playlistFolderChanged:self];
 		}
 	}
@@ -748,7 +762,7 @@
 
 -(int)numberOfRowsInTableView:(NSTabView *)tv
 {
-	NSLog(@"%@, %i", mediaDirs, [mediaDirs count]);
+	NSLog(@"%@, %lu", mediaDirs, (unsigned long)[mediaDirs count]);
 
 	if (mediaDirs == nil)
 		return 0;
@@ -943,7 +957,7 @@
 		}
 		else {
 			[snUsername setStringValue:(username)];
-			[snPassword setStringValue:([self getPref:@"sn_password_sha"] != @"" ? snPasswordPlaceholder : @"")];
+			[snPassword setStringValue:(![[self getPref:@"sn_password_sha"]  isEqual: @""] ? snPasswordPlaceholder : @"")];
 		}
 		
 		int option = [[self getPref:@"sn_disable_stats"] intValue];
@@ -987,7 +1001,7 @@
 
 	NSURLConnection *theConnection=[[NSURLConnection alloc] initWithRequest:request delegate:self];
 	if (theConnection) {
-		receivedData = [[NSMutableData data] retain];
+		receivedData = [NSMutableData data];
 	}
 }
 
@@ -1047,7 +1061,7 @@
 	
 	//NSLog(@"%@", post);
 	NSData *postData = [post dataUsingEncoding:NSUTF8StringEncoding];
-	NSString *postLength = [NSString stringWithFormat:@"%d", [postData length]];	
+	NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[postData length]];
 	
 	// set up our JSON/RPC request
 	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"http://localhost:%i/jsonrpc.js", port]]];
@@ -1062,17 +1076,10 @@
 
 -(NSDictionary *)_parseJsonResponse:(NSData *)data
 {
-	NSString *json_string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-	//NSLog(@"%@", json_string);
-	
-	SBJsonParser *parser = [SBJsonParser new];
-	NSDictionary *json = [parser objectWithString:json_string error:nil];
+    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 	
 	if (json != nil) 
 		json = [json objectForKey:@"result"];
-	
-	//if (json != nil)
-	//	NSLog(@"Squeezebox: JSON request returning '%@'.", json);
 	
 	return json;
 }
@@ -1108,7 +1115,7 @@
 
 -(void)getMediaDirs
 {
-	NSDictionary *prefValue = [self jsonRequest:[NSString stringWithString:@"\"pref\", \"mediadirs\", \"?\""]];
+	NSDictionary *prefValue = [self jsonRequest:@"\"pref\", \"mediadirs\", \"?\""];
 	
 	if (prefValue != nil) {
 		[mediaDirs removeAllObjects];
@@ -1117,7 +1124,7 @@
 		[mediaDirs addObjectsFromArray:dirs];
 	}
 
-	NSLog(@"Squeezebox: Got mediadirs '%@', %i", mediaDirs, [mediaDirs count]);
+	NSLog(@"Squeezebox: Got mediadirs '%@', %lu", mediaDirs, (unsigned long)[mediaDirs count]);
 	[mediaDirsTable reloadData];
 }
 
@@ -1161,7 +1168,7 @@
 		pathToPrefs = [self findFile:NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSLocalDomainMask, YES) fileName:prefsFile];
 
 	if ([pathToPrefs length] > 0) {
-		NSString *fileString = [NSString stringWithContentsOfFile:pathToPrefs];
+		NSString *fileString = [NSString stringWithContentsOfFile:pathToPrefs encoding:NSUTF8StringEncoding error:nil];
 		NSArray *lines = [fileString componentsSeparatedByString:@"\n"];
 		
 		if ([lines count] > 0)
