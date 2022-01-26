@@ -1,0 +1,10 @@
+--- Wx-0.9932/cpp/wxapi.h.orig	2015-03-10 21:27:53.000000000 -0400
++++ Wx-0.9932/cpp/wxapi.h	2022-01-25 14:14:33.002987900 -0500
+@@ -133,6 +133,7 @@
+ #undef getc
+ #undef getenv
+ #undef malloc
++#undef calloc
+ #undef open
+ #undef read
+ #undef realloc
