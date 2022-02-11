@@ -53,7 +53,7 @@ WizardImageBackColor=$ffffff
 WizardSmallImageFile=logitech.bmp
 OutputBaseFilename=SqueezeSetup
 DirExistsWarning=no
-MinVersion=0,5.1
+MinVersion=0,6.1sp1
 
 [Files]
 Source: Release Notes.html; DestDir: {app}; Flags: ignoreversion
@@ -188,7 +188,7 @@ var
 	InstallFolder: String;
 begin
 	if (not RegQueryStringValue(HKLM, '{#SBRegKey}', 'Path', InstallFolder)) then
-		InstallFolder := AddBackslash(ExpandConstant('{pf}')) + 'Squeezebox';
+		InstallFolder := AddBackslash(ExpandConstant('{pf64}')) + 'Squeezebox';
 
 	Result := InstallFolder;
 end;

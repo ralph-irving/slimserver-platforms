@@ -984,17 +984,17 @@ sub buildWin64 {
 		system("cp -R $buildDir/platforms/win64/lib/perl5/* \"$buildDir/build/server\" ");
 
 		print "INFO: Copying Strawberry Perl DLLs from $windowsPerlDir\\c\\bin to server directory $buildDir/build/server\n";
-		copy("$windowsPerlDir/c/bin/libexpat-1__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libgif-7__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libjpeg-9__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libpng16-16__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/zlib1__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libcrypto-1_1-x64__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libssl-1_1-x64__.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/c/bin/libwinpthread-1.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_gcc_custom.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_net_gcc_custom.dll", "$buildDir/build/server");
-		copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_xml_gcc_custom.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libexpat-1__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libgif-7__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libjpeg-9__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libpng16-16__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/zlib1__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libcrypto-1_1-x64__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libssl-1_1-x64__.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/c/bin/libwinpthread-1.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_gcc_custom.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_net_gcc_custom.dll", "$buildDir/build/server");
+		# copy("$windowsPerlDir/perl/site/lib/Alien/wxWidgets/msw_3_0_2_uni_gcc_3_4/lib/wxbase30u_xml_gcc_custom.dll", "$buildDir/build/server");
 
 
 		print "INFO: Copying various documents to $buildDir/build...\n";
@@ -1010,9 +1010,7 @@ sub buildWin64 {
 			"ProductName=Logitech Media Server",
 		);
 
-		my $ppargs = '-M Win32:: -X XML::Parser -X XML::Parser::Expat -X YAML::XS -X Class::XSAccessor -X Template::Stash::XS';
-
-		print "INFO: Building SqueezeTray executable...\n";
+		print "INFO: Copy SqueezeTray script...\n";
 
 		my $programInfo = join(';', @versionInfo, (
 			"FileDescription=Logitech Media Server Tray Icon",
@@ -1020,13 +1018,12 @@ sub buildWin64 {
 			"InternalName=SqueezeTray",
 		));
 
-		# system("cd $buildDir/platforms/win64; perltray --perl \"$windowsPerlPath\" --info \"$programInfo\" SqueezeTray.perltray");
-		system("cd $buildDir/platforms/win64 && pp.bat $ppargs -gui -o SqueezeTray.exe SqueezeTray.pl");
+		# system("cd $buildDir/platforms/win64 && pp.bat $ppargs -gui -o SqueezeTray.exe SqueezeTray.pl");
+		system("cd $buildDir/platforms/win64 && $windowsPerlPath template.pl -int $windowsPerlPath -s SqueezeTray.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o SqueezeTray.exe");
 		move("$buildDir/platforms/win64/SqueezeTray.exe", "$buildDir/build/SqueezeTray.exe");
 		copy("$buildDir/platforms/win64/strings.txt", "$buildDir/build/strings.txt");
 
-		print "INFO: Building Logitech Media Server Service Helper executable...\n";
-
+		print "INFO: Copy Logitech Media Server Service Helper script...\n";
 
 		$programInfo = join(';', @versionInfo, (
 			"FileDescription=Logitech Media Server Service Helper",
@@ -1034,11 +1031,12 @@ sub buildWin64 {
 			"InternalName=squeezesvc",
 		));
 
-		# system("cd $buildDir/platforms/win64; perlapp --perl \"$windowsPerlPath\" --info \"$programInfo\" --clean --bind=grant.exe[file=../../server/Bin/MSWin32-x64-multi-thread/grant.exe,mode=666] --force squeezesvc.pl");
-		system("cd $buildDir/platforms/win64 && pp.bat $ppargs -o squeezesvc.exe squeezesvc.pl");
+		# system("cd $buildDir/platforms/win64 && pp.bat $ppargs -o squeezesvc.exe squeezesvc.pl");
+		system("cd $buildDir/platforms/win64 && $windowsPerlPath template.pl -int $windowsPerlPath -s squeezesvc.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o squeezesvc.exe");
 		move("$buildDir/platforms/win64/squeezesvc.exe", "$buildDir/build/server/squeezesvc.exe");
 
-		print "INFO: Building Logitech Media Server executable for server...\n";
+
+		print "INFO: Copy Logitech Media Server script...\n";
 
 		$programInfo = join(';', @versionInfo, (
 			"FileDescription=Logitech Media Server",
@@ -1046,12 +1044,12 @@ sub buildWin64 {
 			"InternalName=SqueezeboxServer",
 		));
 
-		# system("cd $buildDir/server; perlsvc --perl \"$windowsPerlPath\" --info \"$programInfo\" --verbose ../platforms/win64/squeezecenter.perlsvc");
-		system("cd $buildDir/server &&  pp.bat $ppargs -o slimserver.exe slimserver.pl");
-		move("$buildDir/server/slimserver.exe", "$buildDir/build/server/SqueezeSvr.exe");
+		# system("cd $buildDir/server &&  pp.bat $ppargs -o slimserver.exe slimserver.pl");
+		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s slimserver.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o SqueezeSvr.exe");
+		move("$buildDir/server/SqueezeSvr.exe", "$buildDir/build/server/SqueezeSvr.exe");
 
 
-		print "Making scanner executable...\n";
+		print "Copy scanner script...\n";
 
 		$programInfo = join(';', @versionInfo, (
 			"FileDescription=Logitech Media Server Scanner",
@@ -1059,22 +1057,22 @@ sub buildWin64 {
 			"InternalName=Scanner",
 		));
 
-		# system("cd $buildDir/server; perlapp --perl \"$windowsPerlPath\" --info \"$programInfo\" ../platforms/win64/scanner.perlapp");
-		system("cd $buildDir/server &&  pp.bat $ppargs -o scanner.exe scanner.pl");
+		# system("cd $buildDir/server &&  pp.bat $ppargs -o scanner.exe scanner.pl");
+		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s scanner.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o scanner.exe");
 		move("$buildDir/server/scanner.exe", "$buildDir/build/server/scanner.exe");
 
 
-		print "Making control panel executable...\n";
-
+		print "Copy control panel script...\n";
 		$programInfo = join(';', @versionInfo, (
 			"FileDescription=Logitech Media Server Control Panel",
 			"OriginalFilename=Cleanup",
 			"InternalName=Cleanup",
 		));
 
-		# system("cd $buildDir/server; perlapp --perl \"$windowsPerlPath\" --info \"$programInfo\" ../platforms/win64/cleanup.perlapp");
-		system("cd $buildDir/server &&  pp.bat $ppargs -M Wx -M Alien::wxWidgets -M Exporter::Lite -gui -o cleanup.exe cleanup.pl");
-		move("$buildDir/server/cleanup.exe", "$buildDir/build/server/squeezeboxcp.exe");
+		# system("cd $buildDir/server &&  pp.bat $ppargs -M Wx -M Alien::wxWidgets -M Exporter::Lite -gui -o cleanup.exe cleanup.pl");
+		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s cleanup.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o squeezeboxcp.exe");
+		move("$buildDir/server/squeezeboxcp.exe", "$buildDir/build/server/squeezeboxcp.exe");
+		# move("$buildDir/server/cleanup.pl", "$buildDir/build/server/squeezeboxcp.pl");
 
 
 		# print "INFO: Removing files we don't want to have in the binary distribution...\n";
@@ -1090,10 +1088,10 @@ sub buildWin64 {
 		# unlink("$buildDir/build/server/Slim/bootstrap.pm");
 		# unlink("$buildDir/build/server/Slim/Formats.pm");
 		# unlink("$buildDir/build/server/Slim/Schema.pm");
-		unlink("$buildDir/build/server/cleanup.pl");
-		unlink("$buildDir/build/server/slimserver.pl");
-		unlink("$buildDir/build/server/slimservice.pl");
-		unlink("$buildDir/build/server/scanner.pl");
+		# unlink("$buildDir/build/server/cleanup.pl");
+		# unlink("$buildDir/build/server/slimserver.pl");
+		# unlink("$buildDir/build/server/slimservice.pl");
+		# unlink("$buildDir/build/server/scanner.pl");
 
 
 		print "INFO: Making installer...\n";
