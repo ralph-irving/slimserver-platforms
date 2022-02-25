@@ -10,7 +10,7 @@
 #define SCRegKey = "Software\Logitech\SqueezeCenter"
 #define SBRegKey = "Software\Logitech\Squeezebox"
 
-#define VCRedistKey  = "SOFTWARE\Microsoft\VisualStudio\10.0\VC\VCRedist\x86"
+; #define VCRedistKey  = "SOFTWARE\Microsoft\VisualStudio\10.0\VC\VCRedist\x86"
 
 [Languages]
 ; order of languages is important when falling back when a localization is missing
@@ -54,6 +54,7 @@ WizardSmallImageFile=logitech.bmp
 OutputBaseFilename=SqueezeSetup
 DirExistsWarning=no
 MinVersion=0,6.1sp1
+ArchitecturesInstallIn64BitMode=x64 ia64
 
 [Files]
 Source: Release Notes.html; DestDir: {app}; Flags: ignoreversion
@@ -61,7 +62,7 @@ Source: Release Notes.html; DestDir: {app}; Flags: ignoreversion
 ; a dll to verify if a process is still running
 ; http://www.vincenzo.net/isxkb/index.php?title=PSVince
 Source: psvince.dll; Flags: dontcopy
-Source: vcredist.exe; Destdir: "{tmp}"; Flags: deleteafterinstall
+; Source: vcredist.exe; Destdir: "{tmp}"; Flags: deleteafterinstall
 
 ; add the english version for all languages as long as we don't have any translation
 Source: License.txt; DestName: "{cm:License}.txt"; DestDir: {app}; Flags: ignoreversion
@@ -69,19 +70,19 @@ Source: License.txt; DestName: "{cm:License}.txt"; DestDir: {app}; Flags: ignore
 ; Next line takes everything from the source '\server' directory and copies it into the setup
 ; it's output into the same location from the users choice.
 Source: server\*.*; DestDir: {app}\server; Excludes: "*freebsd*,*openbsd*,*darwin*,*linux*,*solaris*"; Flags: recursesubdirs ignoreversion
-Source: SqueezeTray.exe; DestDir: {app}; Flags: ignoreversion
+; Source: SqueezeTray.exe; DestDir: {app}; Flags: ignoreversion
 
 [Dirs]
 Name: {commonappdata}\Squeezebox; Permissions: users-modify
 Name: {app}\server\Plugins; Permissions: users-modify
 
 [Icons]
-Name: {group}\{#AppName}; Filename: {app}\SqueezeTray.exe; Parameters: "--start"; WorkingDir: "{app}";
+; Name: {group}\{#AppName}; Filename: {app}\SqueezeTray.exe; Parameters: "--start"; WorkingDir: "{app}";
 Name: {group}\{cm:ControlPanel}; Filename: {app}\server\squeezeboxcp.exe; WorkingDir: "{app}\server";
 Name: {group}\{cm:License}; Filename: {app}\{cm:License}.txt
 Name: {group}\{cm:UninstallSqueezeCenter}; Filename: {uninstallexe}
-Name: {commonstartup}\{cm:SqueezeCenterTrayTool}; Filename: {app}\SqueezeTray.exe; WorkingDir: "{app}"
-Name: {userdesktop}\{#AppName}; Filename: {app}\SqueezeTray.exe; Parameters: "--start"; WorkingDir: "{app}";
+; Name: {commonstartup}\{cm:SqueezeCenterTrayTool}; Filename: {app}\SqueezeTray.exe; WorkingDir: "{app}"
+; Name: {userdesktop}\{#AppName}; Filename: {app}\SqueezeTray.exe; Parameters: "--start"; WorkingDir: "{app}";
 
 [Registry]
 ;
@@ -126,7 +127,7 @@ Root: HKLM; Subkey: SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\Fi
 Root: HKLM; Subkey: SOFTWARE\Logitech\Squeezebox; ValueType: string; ValueName: Path; ValueData: {app}
 Root: HKLM; Subkey: SOFTWARE\Logitech\Squeezebox; ValueType: string; ValueName: DataPath; ValueData: {code:GetWritablePath}
 ; flag the squeezesvc.exe to be run as administrator on Vista
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers; ValueType: string; ValueName: {app}\server\squeezesvc.exe; ValueData: RUNASADMIN; Flags: uninsdeletevalue; MinVersion: 0,6.0;
+; Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers; ValueType: string; ValueName: {app}\server\squeezesvc.exe; ValueData: RUNASADMIN; Flags: uninsdeletevalue; MinVersion: 0,6.0;
 
 [InstallDelete]
 Type: filesandordirs; Name: {group}
@@ -138,19 +139,19 @@ Type: dirifempty; Name: {app}\server\IR
 Type: dirifempty; Name: {app}\server\Plugins
 Type: dirifempty; Name: {app}\server\HTML
 Type: dirifempty; Name: {app}\server\SQL
-Type: files; Name: {commonstartup}\{cm:SqueezeCenterTrayTool}.url
+; Type: files; Name: {commonstartup}\{cm:SqueezeCenterTrayTool}.url
 
 [Run]
-Filename: {app}\server\squeezeboxcp.exe; Description: {cm:StartupControlPanel}; Flags: postinstall nowait skipifsilent
+; Filename: {app}\server\squeezeboxcp.exe; Description: {cm:StartupControlPanel}; Flags: postinstall nowait skipifsilent
 ; remove potential left-overs from earlier installations
-Filename: "sc"; Parameters: "stop SqueezeMySQL"; Flags: runhidden; MinVersion: 0,4.00.1381
-Filename: "sc"; Parameters: "delete SqueezeMySQL"; Flags: runhidden; MinVersion: 0,4.00.1381
+; Filename: "sc"; Parameters: "stop SqueezeMySQL"; Flags: runhidden; MinVersion: 0,4.00.1381
+; Filename: "sc"; Parameters: "delete SqueezeMySQL"; Flags: runhidden; MinVersion: 0,4.00.1381
 
 [UninstallRun]
-Filename: "sc"; Parameters: "stop squeezesvc"; Flags: runhidden; MinVersion: 0,4.00.1381
-Filename: "sc"; Parameters: "delete squeezesvc"; Flags: runhidden; MinVersion: 0,4.00.1381
-Filename: {app}\server\SqueezeSvr.exe; Parameters: -remove; WorkingDir: {app}\server; Flags: skipifdoesntexist runhidden; MinVersion: 0,4.00.1381
-Filename: {app}\SqueezeTray.exe; Parameters: "--exit --uninstall"; WorkingDir: {app}; Flags: skipifdoesntexist runhidden; MinVersion: 0,4.00.1381
+; Filename: "sc"; Parameters: "stop squeezesvc"; Flags: runhidden; MinVersion: 0,4.00.1381
+; Filename: "sc"; Parameters: "delete squeezesvc"; Flags: runhidden; MinVersion: 0,4.00.1381
+; Filename: {app}\server\SqueezeSvr.exe; Parameters: -remove; WorkingDir: {app}\server; Flags: skipifdoesntexist runhidden; MinVersion: 0,4.00.1381
+; Filename: {app}\SqueezeTray.exe; Parameters: "--exit --uninstall"; WorkingDir: {app}; Flags: skipifdoesntexist runhidden; MinVersion: 0,4.00.1381
 
 [Code]
 #include "SocketTest.iss"
@@ -188,7 +189,7 @@ var
 	InstallFolder: String;
 begin
 	if (not RegQueryStringValue(HKLM, '{#SBRegKey}', 'Path', InstallFolder)) then
-		InstallFolder := AddBackslash(ExpandConstant('{pf64}')) + 'Squeezebox';
+		InstallFolder := AddBackslash(ExpandConstant('{commonpf}')) + 'Squeezebox';
 
 	Result := InstallFolder;
 end;
@@ -309,7 +310,7 @@ begin
 	else
 		begin
 			RegKey := '{#SSRegKey}';
-			InstallDefault := AddBackslash(ExpandConstant('{pf}')) + 'SlimServer';
+			InstallDefault := AddBackslash(ExpandConstant('{commonpf}')) + 'SlimServer';
 			Svc := 'slimsvc';
 			Executable := 'slimserver.exe';
 			LongExecutable := Executable;
@@ -630,30 +631,32 @@ begin
 				if (StartAtBoot = '1') then
 					StartupMode := 'logon';
 		end;
+
+	StartupMode := '';
 end;
 
 // check whether the VC redistributable libraries are installed
-function HasVCRedist(): Boolean;
-var
-	VCRedistInstalled: Cardinal;
-begin
-	if ( RegQueryDWordValue(HKLM, '{#VCRedistKey}', 'Installed', VCRedistInstalled) and (VCRedistInstalled >= 1) ) then
-		Result := true
-	else
-		Result := false;
-end;
+// function HasVCRedist(): Boolean;
+// var
+// 	VCRedistInstalled: Cardinal;
+// begin
+// 	if ( RegQueryDWordValue(HKLM, '{#VCRedistKey}', 'Installed', VCRedistInstalled) and (VCRedistInstalled >= 1) ) then
+// 		Result := true
+// 	else
+// 		Result := false;
+// end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-	if (WizardSilent and (not HasVCRedist())) then
-		begin
-			ExtractTemporaryFile('vcredist.exe');
-			if (DirExists('d:\shares\software') and FileCopy(ExpandConstant('{tmp}') + 'vcredist.exe', 'd:\shares\software\vcredist.exe', false)) then
-				Result := CustomMessage('PleaseInstallVCRedist2010') + CustomMessage('FindVCRedist')
-			else
-				Result := CustomMessage('PleaseInstallVCRedist2010') + CustomMessage('FindVCRedist2010Online');
-		end
-	else
+	// if (WizardSilent and (not HasVCRedist())) then
+		// begin
+			// ExtractTemporaryFile('vcredist.exe');
+			// if (DirExists('d:\shares\software') and FileCopy(ExpandConstant('{tmp}') + 'vcredist.exe', 'd:\shares\software\vcredist.exe', false)) then
+				// Result := CustomMessage('PleaseInstallVCRedist2010') + CustomMessage('FindVCRedist')
+			// else
+				// Result := CustomMessage('PleaseInstallVCRedist2010') + CustomMessage('FindVCRedist2010Online');
+		// end
+	// else
 		Result := '';
 end;
 
@@ -734,13 +737,19 @@ begin
 				else if (pos('/installservice', lowercase(ParamStr(i))) > 0) then
 					InstallService := true
 			end;
-			
+
+			// Override any command line options
+			NoTrayIcon := true;
+			TrayIcon := false;
+			InstallService := false;
+			StartupMode := '';
+
 			Silent := Silent or WizardSilent;
 
 			// run VC runtime installer if not already installed
 			// http://blogs.msdn.com/b/astebner/archive/2010/05/05/10008146.aspx
-			if ( (TrayIcon or not Silent) and (not HasVCRedist()) ) then
-				Exec(AddBackslash(ExpandConstant('{tmp}')) + 'vcredist.exe', '/q:a /c:"msiexec /i vcredist.msi /qb!"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ErrorCode);
+			// if ( (TrayIcon or not Silent) and (not HasVCRedist()) ) then
+				// Exec(AddBackslash(ExpandConstant('{tmp}')) + 'vcredist.exe', '/q:a /c:"msiexec /i vcredist.msi /qb!"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ErrorCode);
 
 			ProgressPage := CreateOutputProgressPage(CustomMessage('RegisterServices'), CustomMessage('RegisterServicesDesc'));
 
@@ -813,8 +822,8 @@ begin
 				if StartupMode = 'auto' then
 					StartService('squeezesvc');
 
-				ProgressPage.setText(CustomMessage('RegisteringServices'), 'SqueezeTray');
-				ProgressPage.setProgress(ProgressPage.ProgressBar.Position+10, ProgressPage.ProgressBar.Max);
+				; ProgressPage.setText(CustomMessage('RegisteringServices'), 'SqueezeTray');
+				; ProgressPage.setProgress(ProgressPage.ProgressBar.Position+10, ProgressPage.ProgressBar.Max);
 
 				if NoTrayIcon then
 					DeleteFile(AddBackslash(ExpandConstant('{commonstartup}')) + CustomMessage('SqueezeCenterTrayTool') + '.lnk');
@@ -822,11 +831,11 @@ begin
 				// in silent mode do not wait for SC to be started before quitting the installer
 				if not Silent or (TrayIcon and not NoTrayIcon) then
 					begin
-						Exec(ExpandConstant('{app}') + '\SqueezeTray.exe', '--install', ExpandConstant('{app}'), SW_SHOW, ewWaitUntilIdle, ErrorCode);
+						// Exec(ExpandConstant('{app}') + '\SqueezeTray.exe', '--install', ExpandConstant('{app}'), SW_SHOW, ewWaitUntilIdle, ErrorCode);
 
 						// "running" means: starting manually only, but was running when installer was launched
-						if (StartupMode = 'running') then
-							Exec(ExpandConstant('{app}') + '\SqueezeTray.exe', '--start', ExpandConstant('{app}'), SW_SHOW, ewWaitUntilIdle, ErrorCode);
+						// if (StartupMode = 'running') then
+							// Exec(ExpandConstant('{app}') + '\SqueezeTray.exe', '--start', ExpandConstant('{app}'), SW_SHOW, ewWaitUntilIdle, ErrorCode);
 				
 						if (StartupMode = 'auto') or (StartupMode = 'logon') or (StartupMode = 'running') then
 							begin
