@@ -545,6 +545,10 @@ sub buildRPM {
 
 	## Now we need to build a tarball ...
 	print "INFO: Building $buildDir/$defaultDestName.tgz for the RPM...\n";
+	
+	# CentOS 7 is still supported till 2024 - put 5.16 back in...
+	$dirsToExcludeForLinuxPackage =~ s/5\.16 //;
+	
 	buildTarball($dirsToExcludeForLinuxPackage, "$buildDir/$defaultDestName");
 
 	## We already built a tarball, so now lets use it...
@@ -981,7 +985,7 @@ sub buildWin64 {
 
 		# Modules copied to the base server folder override the packager install.
 		print "INFO: Copying platform lib/perl5 module(s) to $buildDir/build/server...\n";
-		system("cp -R $buildDir/platforms/win64/lib/perl5/* \"$buildDir/build/server\" ");
+		system("cp -R $buildDir/platforms/win64/lib/perl5 \"$buildDir/build/server/lib\" ");
 
 		print "INFO: Copying Strawberry Perl DLLs from $windowsPerlDir\\c\\bin to server directory $buildDir/build/server\n";
 		# copy("$windowsPerlDir/c/bin/libexpat-1__.dll", "$buildDir/build/server");
@@ -1010,72 +1014,27 @@ sub buildWin64 {
 			"ProductName=Logitech Media Server",
 		);
 
-		print "INFO: Copy SqueezeTray script...\n";
+		print "INFO: Copy server script...\n";
 
-		my $programInfo = join(';', @versionInfo, (
-			"FileDescription=Logitech Media Server Tray Icon",
-			"OriginalFilename=SqueezeTray",
-			"InternalName=SqueezeTray",
-		));
-
-		# system("cd $buildDir/platforms/win64 && pp.bat $ppargs -gui -o SqueezeTray.exe SqueezeTray.pl");
-		system("cd $buildDir/platforms/win64 && $windowsPerlPath template.pl -int $windowsPerlPath -s SqueezeTray.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o SqueezeTray.exe");
-		move("$buildDir/platforms/win64/SqueezeTray.exe", "$buildDir/build/SqueezeTray.exe");
-		copy("$buildDir/platforms/win64/strings.txt", "$buildDir/build/strings.txt");
-
-		print "INFO: Copy Logitech Media Server Service Helper script...\n";
-
-		$programInfo = join(';', @versionInfo, (
-			"FileDescription=Logitech Media Server Service Helper",
-			"OriginalFilename=squeezesvc",
-			"InternalName=squeezesvc",
-		));
-
-		# system("cd $buildDir/platforms/win64 && pp.bat $ppargs -o squeezesvc.exe squeezesvc.pl");
-		system("cd $buildDir/platforms/win64 && $windowsPerlPath template.pl -int $windowsPerlPath -s squeezesvc.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o squeezesvc.exe");
-		move("$buildDir/platforms/win64/squeezesvc.exe", "$buildDir/build/server/squeezesvc.exe");
-
-
-		print "INFO: Copy Logitech Media Server script...\n";
-
-		$programInfo = join(';', @versionInfo, (
-			"FileDescription=Logitech Media Server",
-			"OriginalFilename=SqueezeboxServer",
-			"InternalName=SqueezeboxServer",
-		));
-
-		# system("cd $buildDir/server &&  pp.bat $ppargs -o slimserver.exe slimserver.pl");
 		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s slimserver.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o SqueezeSvr.exe");
 		move("$buildDir/server/SqueezeSvr.exe", "$buildDir/build/server/SqueezeSvr.exe");
 
 
-		print "Copy scanner script...\n";
+		print "INFO: Copy scanner script...\n";
 
-		$programInfo = join(';', @versionInfo, (
-			"FileDescription=Logitech Media Server Scanner",
-			"OriginalFilename=Scanner",
-			"InternalName=Scanner",
-		));
-
-		# system("cd $buildDir/server &&  pp.bat $ppargs -o scanner.exe scanner.pl");
 		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s scanner.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o scanner.exe");
 		move("$buildDir/server/scanner.exe", "$buildDir/build/server/scanner.exe");
 
 
-		print "Copy control panel script...\n";
-		$programInfo = join(';', @versionInfo, (
-			"FileDescription=Logitech Media Server Control Panel",
-			"OriginalFilename=Cleanup",
-			"InternalName=Cleanup",
-		));
-
-		# system("cd $buildDir/server &&  pp.bat $ppargs -M Wx -M Alien::wxWidgets -M Exporter::Lite -gui -o cleanup.exe cleanup.pl");
+		print "INFO: Copy control panel script...\n";
+		
 		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s cleanup.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o squeezeboxcp.exe");
 		move("$buildDir/server/squeezeboxcp.exe", "$buildDir/build/server/squeezeboxcp.exe");
-		# move("$buildDir/server/cleanup.pl", "$buildDir/build/server/squeezeboxcp.pl");
+		copy("$buildDir/server/cleanup.pl", "$buildDir/build/server/cleanup.pl");
+		copy("$buildDir/platforms/win64/res/lms_splash.png","$buildDir/build/server/lms_splash.png");
 
 
-		# print "INFO: Removing files we don't want to have in the binary distribution...\n";
+		print "INFO: Removing files we don't want to have in the binary distribution...\n";
 		# rmtree("$buildDir/build/server/CPAN");
 		# rmtree("$buildDir/build/server/lib");
 
@@ -1090,7 +1049,7 @@ sub buildWin64 {
 		# unlink("$buildDir/build/server/Slim/Schema.pm");
 		# unlink("$buildDir/build/server/cleanup.pl");
 		# unlink("$buildDir/build/server/slimserver.pl");
-		# unlink("$buildDir/build/server/slimservice.pl");
+		unlink("$buildDir/build/server/slimservice.pl");
 		# unlink("$buildDir/build/server/scanner.pl");
 
 

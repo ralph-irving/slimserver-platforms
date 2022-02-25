@@ -230,6 +230,9 @@ std::wstring current_exe_directory(void) {
 
 int main(int argc, char **argv)
 {
+    // Hide the console window
+    // ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+
     std::wstring exe_dir(current_exe_directory());
     std::wstring fullpath;
     fullpath += exe_dir;
@@ -252,11 +255,16 @@ int main(int argc, char **argv)
     std::wstring command_line = cmdline_of_argvw(split_cl);
 
     // Each environment variable must be NULL terminated.
-    // Install path C:\Program Files (x86)\Squeezebox\server
+    // Install path C:\Program Files\Squeezebox\server
     std::string envVars;
-    envVars += "PERL5LIB=C:\\Program Files\\Squeezebox\\slimserver;C:\\Program Files\\Squeezebox\\slimserver\\lib";
+    envVars += "PERL5LIB=C:\\Program Files\\Squeezebox\\server;C:\\Program Files\\Squeezebox\\server\\lib";
+    envVars += "SystemDrive=C:";
     envVars += '\0';
-    envVars += "PATH=C:\\Strawberry\\c\\bin;C:\\Strawberry\\perl\\site\\bin;C:\\Strawberry\\perl\\bin";
+    envVars += "SystemRoot=C:\\Windows";
+    envVars += '\0';
+    envVars += "windir=C:\\Windows";
+    envVars += '\0';
+    envVars += "PATH=C:\\Strawberry\\c\\bin;C:\\Strawberry\\perl\\site\\bin;C:\\Strawberry\\perl\\bin;C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem";
     envVars += '\0';
     
     // make sure to zero-initialize these things.
