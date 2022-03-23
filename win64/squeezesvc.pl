@@ -31,10 +31,18 @@ if ($install) {
 	
 		# configure user to run the server - he needs the right to logon as a service
 		if ($username) {
+			my $grant;
 			my $user = $username;
 			$user =~ s/^.*\\//;
-			
-			my $grant = PerlApp::extract_bound_file('grant.exe');
+
+			if (defined $PerlApp::VERSION) {
+				$grant = PerlApp::extract_bound_file('grant.exe');
+			}
+
+			else {
+				$grant = 'grant.exe';
+			}
+
 			`$grant add SeServiceLogonRight $user` if $username && $grant;
 		}
 
