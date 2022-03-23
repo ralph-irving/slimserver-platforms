@@ -230,8 +230,9 @@ std::wstring current_exe_directory(void) {
 
 int main(int argc, char **argv)
 {
-    // Hide the console window
-    // ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+    // Hide the console window for cleanup.pl
+    if (script_name == L"cleanup.pl")
+        ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 
     std::wstring exe_dir(current_exe_directory());
     std::wstring fullpath;
