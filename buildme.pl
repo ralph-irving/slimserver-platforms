@@ -255,13 +255,14 @@ sub setupBuildTree {
 
 
 	# Write out the revision number
-	if ($revision = getRevisionForRepo()) {
-		my $date = `date`;
+	if ($revision = getTimestampDateForRepo()) {
+		my $date = getRevisionForRepo();
 
 		print "INFO: Last Revision number is: $revision\n";
 
 		open(REV, ">$buildDir/$revisionTextFile") or die "Problem: Couldn't write out $buildDir/$revisionTextFile : $!\n";
-		print REV "$revision\n$date";
+		binmode(REV);
+		print REV "$date\x0A$revision\x0A";
 		close(REV);
 	}
 }
@@ -343,22 +344,27 @@ sub doCommandOptions {
 ##############################################################################################
 sub getRevisionForRepo {
 	my $revision;
-	if (-d "$sourceDir/.svn") {
-		open (SVN, "svn info $sourceDir |") or die "Problem: Couldn't run svn info $sourceDir : $!\n";
-
-		while (<SVN>) {
-			if (/Last Changed Rev: (\d+)/) {
-				$revision = $1;
-			}
-		}
-		close(SVN);
-	} elsif (-d "$sourceDir/server/.git") {
-		$revision = `git --git-dir=$sourceDir/server/.git log -n 1 --pretty=format:%ct`;
-		$revision =~ s/\s*$//s;
+	if (-d "$sourceDir/server/.git") {
+		$revision = "r" . `git --git-dir=$sourceDir/server/.git rev-list --count HEAD` . "." . `git --git-dir=$sourceDir/server/.git log -n 1 --pretty=format:%h`;
+		$revision =~ s/\n//s;
 	} else {
 		$revision = 'UNKNOWN';
 	}
 	return $revision;
+}
+
+##############################################################################################
+## We need to know the revision # of the code, so that we can put it into the source tree   ##
+##############################################################################################
+sub getTimestampDateForRepo {
+	my $tsdate;
+	if (-d "$sourceDir/server/.git") {
+		$tsdate = `git --git-dir=$sourceDir/server/.git log -n 1 --pretty=format:%ct`;
+		$tsdate =~ s/\s*$//s;
+	} else {
+		$tsdate = 'UNKNOWN';
+	}
+	return $tsdate;
 }
 
 ##############################################################################################
@@ -773,7 +779,7 @@ sub buildWin32 {
 		#print "INFO: Copying additional perl modules to $windowsPerlDir\\site...\n";
 		#system("cp -R $buildDir/platforms/win32/lib/perl5/* \"$windowsPerlDir/site\" ");
 
-		my $rev = int(($revision || getRevisionForRepo() || $version) / 3600) % 65536;
+		my $rev = int(($revision || getTimestampDateForRepo() || $version) / 3600) % 65536;
 		my @versionInfo = (
 			"CompanyName=Logitech Inc.",
 			"FileVersion=$rev",
@@ -1005,7 +1011,7 @@ sub buildWin64 {
 		copy("$buildDir/server/CHANGELOG.html", "$buildDir/build/Release Notes.html");
 		copy("$buildDir/server/license.txt", "$buildDir/build/License.txt");
 
-		my $rev = int(($revision || getRevisionForRepo() || $version) / 3600) % 65536;
+		my $rev = int(($revision || getTimestampDateForRepo() || $version) / 3600) % 65536;
 		my @versionInfo = (
 			"CompanyName=Logitech Inc.",
 			"FileVersion=$rev",
@@ -1020,6 +1026,13 @@ sub buildWin64 {
 		move("$buildDir/server/SqueezeSvr.exe", "$buildDir/build/server/SqueezeSvr.exe");
 
 
+		print "INFO: Copy service script...\n";
+
+		system("cd $buildDir/platforms/win64 && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s squeezesvc.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o squeezesvc.exe");
+		move("$buildDir/platforms/win64/squeezesvc.exe", "$buildDir/build/server/squeezesvc.exe");
+		copy("$buildDir/platforms/win64/squeezesvc.pl", "$buildDir/build/server/squeezesvc.pl");
+
+
 		print "INFO: Copy scanner script...\n";
 
 		system("cd $buildDir/server && $windowsPerlPath $buildDir/platforms/win64/template.pl -int $windowsPerlPath -s scanner.pl -c $windowsPerlDir\\c\\bin\\g++.exe -o scanner.exe");
@@ -1032,6 +1045,9 @@ sub buildWin64 {
 		move("$buildDir/server/squeezeboxcp.exe", "$buildDir/build/server/squeezeboxcp.exe");
 		copy("$buildDir/server/cleanup.pl", "$buildDir/build/server/cleanup.pl");
 		copy("$buildDir/platforms/win64/res/lms_splash.png","$buildDir/build/server/lms_splash.png");
+		copy("$buildDir/platforms/win64/res/SqueezeCenter.ico","$buildDir/build/server/SqueezeCenter.ico");
+		copy("$buildDir/platforms/win64/res/logitech-logo.png","$buildDir/build/server/logitech-logo.png");
+		copy("$buildDir/platforms/win64/installer/ApplicationData.xml","$buildDir/build/server/ApplicationData.xml");
 
 
 		print "INFO: Removing files we don't want to have in the binary distribution...\n";
@@ -1052,6 +1068,8 @@ sub buildWin64 {
 		unlink("$buildDir/build/server/slimservice.pl");
 		# unlink("$buildDir/build/server/scanner.pl");
 
+		# remove vi backup files
+		system("find $buildDir/build/server -name \\'*~\\' -type f | xargs rm -f ");
 
 		print "INFO: Making installer...\n";
 
@@ -1115,28 +1133,28 @@ sub buildWin64 {
 		unlink("$buildDir/build/Russian.isl");
 
 
-		print "INFO: Making Windows Home Server installer... $version.$revision \n";
-		# replacing build number in installer script
-		system("sed -e \"s/!!revision!!/$revision/\" \"$buildDir/platforms/win64/installer/SqueezeCenter.wxs\" > \"$buildDir/build/Output/SqueezeCenter.wxs\"");
-		copy("$buildDir/platforms/win64/WHS Add-In/SqueezeCenter/bin/Release/HomeServerConsoleTab.SqueezeCenter.dll", "$buildDir/build/Output");
-		copy("$buildDir/platforms/win64/WHS Add-In/SqueezeCenter/bin/Release/Jayrock.Json.dll", "$buildDir/build/Output");
-		system("cd $buildDir/build/Output && \"$buildDir/platforms/win64/WiX/candle.exe\" SqueezeCenter.wxs");
-		system("cd $buildDir/build/Output && \"$buildDir/platforms/win64/WiX/light.exe\" -sw2024 -sw1076 SqueezeCenter.wixobj");
+		#print "INFO: Making Windows Home Server installer... $version.$revision \n";
+		## replacing build number in installer script
+		#system("sed -e \"s/!!revision!!/$revision/\" \"$buildDir/platforms/win64/installer/SqueezeCenter.wxs\" > \"$buildDir/build/Output/SqueezeCenter.wxs\"");
+		#copy("$buildDir/platforms/win64/WHS Add-In/SqueezeCenter/bin/Release/HomeServerConsoleTab.SqueezeCenter.dll", "$buildDir/build/Output");
+		#copy("$buildDir/platforms/win64/WHS Add-In/SqueezeCenter/bin/Release/Jayrock.Json.dll", "$buildDir/build/Output");
+		#system("cd $buildDir/build/Output && \"$buildDir/platforms/win64/WiX/candle.exe\" SqueezeCenter.wxs");
+		#system("cd $buildDir/build/Output && \"$buildDir/platforms/win64/WiX/light.exe\" -sw2024 -sw1076 SqueezeCenter.wixobj");
 
-		unlink("$buildDir/build/Output/SqueezeCenter.wixobj");
-		unlink("$buildDir/build/Output/SqueezeCenter.wixpdb");
-		unlink("$buildDir/build/Output/SqueezeCenter.wxs");
-		unlink("$buildDir/build/Output/HomeServerConsoleTab.SqueezeCenter.dll");
+		#unlink("$buildDir/build/Output/SqueezeCenter.wixobj");
+		#unlink("$buildDir/build/Output/SqueezeCenter.wixpdb");
+		#unlink("$buildDir/build/Output/SqueezeCenter.wxs");
+		#unlink("$buildDir/build/Output/HomeServerConsoleTab.SqueezeCenter.dll");
 
 		print "INFO: Everything is finally ready, renaming the .exe and zip files...\n";
-		print "INFO: Moving [$buildDir/build/Output/SqueezeSetup.exe] to [$destDir/$destFileName.exe]\n";
-		move("$buildDir/build/Output/SqueezeSetup.exe", "$destDir/$destFileName.exe");
+		print "INFO: Moving [$buildDir/build/Output/SqueezeSetup.exe] to [$destDir/$destFileName-x64.exe]\n";
+		move("$buildDir/build/Output/SqueezeSetup.exe", "$destDir/$destFileName-x64.exe");
 
 		# rename the Windows Home Server installer
-		print "INFO: Moving [$buildDir/build/Output/SqueezeCenter.msi] to [$destDir/$destFileName-whs.msi]\n";
-		move("$buildDir/build/Output/SqueezeCenter.msi", "$destDir/$destFileName-whs.msi");
+		#print "INFO: Moving [$buildDir/build/Output/SqueezeCenter.msi] to [$destDir/$destFileName-whs.msi]\n";
+		#move("$buildDir/build/Output/SqueezeCenter.msi", "$destDir/$destFileName-whs.msi");
 
-		# rmtree("$buildDir/build/Output");
+		rmtree("$buildDir/build/Output");
 	}
 }
 
